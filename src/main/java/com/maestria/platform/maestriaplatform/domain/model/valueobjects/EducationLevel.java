@@ -1,7 +1,8 @@
 package com.maestria.platform.maestriaplatform.domain.model.valueobjects;
 
 public enum EducationLevel {
-    Inicial,
-    Primaria,
-    Secundaria,
+    /*
+    TO-DO: Implementar esto:
+     'inicial' | 'primaria' | 'secundaria';
+     */
 }

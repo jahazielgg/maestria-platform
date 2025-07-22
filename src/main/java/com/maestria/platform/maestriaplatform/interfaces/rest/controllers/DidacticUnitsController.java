@@ -1,9 +1,7 @@
 package com.maestria.platform.maestriaplatform.interfaces.rest.controllers;
 
 import com.maestria.platform.maestriaplatform.infrastructure.ollama.OllamaClient;
-import com.maestria.platform.maestriaplatform.interfaces.rest.resources.DidacticUnitResource;
-import com.maestria.platform.maestriaplatform.interfaces.rest.resources.SelectedCompetencyResource;
-import com.maestria.platform.maestriaplatform.interfaces.rest.resources.SelectedTransversalCompetencyResource;
+import com.maestria.platform.maestriaplatform.interfaces.rest.resources.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,9 +19,29 @@ public class DidacticUnitsController {
 
     @PostMapping
     public ResponseEntity<String> generate(@RequestBody DidacticUnitResource resource) {
-        String prompt = buildPrompt(resource);
-        String generatedMaterial = ollamaClient.generateMaterial(prompt);
-        return ResponseEntity.ok(generatedMaterial);
+        try {
+            if (resource == null) {
+                return ResponseEntity.badRequest().body("Request body cannot be null");
+            }
+
+            if (resource.didacticUnitDetails() == null) {
+                return ResponseEntity.badRequest().body("Didactic unit details cannot be null");
+            }
+
+            // Debug logging
+            System.out.println("Received resource: " + resource);
+            System.out.println("Class of didacticUnitDetails: " + resource.didacticUnitDetails().getClass());
+            System.out.println("Type: " + resource.didacticUnitDetails().type());
+
+            String prompt = buildPrompt(resource);
+            String generatedMaterial = ollamaClient.generateMaterial(prompt);
+            return ResponseEntity.ok(generatedMaterial);
+
+        } catch (Exception e) {
+            System.err.println("Error processing request: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Internal server error: " + e.getMessage());
+        }
     }
 
     private String buildPrompt(DidacticUnitResource request) {
@@ -31,24 +49,48 @@ public class DidacticUnitsController {
 
         sb.append("Eres un experto en diseño curricular del Perú. Genera una UNIDAD DE APRENDIZAJE completa a partir de la siguiente información. Por favor, no empieces dando una introducción como 'A continuación' u otros, de frente brinda el informe. Haz TODO en formato MARKDOWN\n\n");
 
-        // Sección 1
-        sb.append("1. PLANTEAMIENTO DE LA SITUACIÓN SIGNIFICATIVA\n");
+        // Información general
+        var details = request.didacticUnitDetails();
+        sb.append(details.title()).append("\n\n");
         sb.append("Nivel educativo: ").append(request.educationLevel()).append("\n");
         sb.append("Ciclo: ").append(request.cycle()).append("\n");
         sb.append("Grado: ").append(request.grade()).append("\n");
+        sb.append("Fecha de inicio: ").append(details.startDate()).append("\n");
+        sb.append("Fecha de fin: ").append(details.endDate()).append("\n\n");
+
+        // Sección 1
+        sb.append("1. PLANTEAMIENTO DE LA SITUACIÓN SIGNIFICATIVA\n");
         sb.append("Situación significativa proporcionada: ")
                 .append(request.significantSituation() != null ? request.significantSituation() : "No se proporcionó una situación. Por favor, propón una.")
                 .append("\n");
+
         sb.append("Por favor, amplía el planteamiento si es necesario, agregando contexto, problemática y preguntas abiertas retadoras que motiven el aprendizaje (por ejemplo: ¿Cómo podríamos...? ¿Qué podemos hacer si...?).\n\n");
 
         // Sección 2
         sb.append("2. PROPÓSITOS DE APRENDIZAJE\n");
-        sb.append("2.1 Producto de la unidad: ");
-        sb.append(request.didacticUnitDetails() != null && !request.didacticUnitDetails().isEmpty()
-                        ? request.didacticUnitDetails()
-                        : "No se indicó un producto final. Por favor, propone uno coherente con la situación significativa.")
-                .append("\n");
-        sb.append("2.2 Actividades semanales: Diseña una secuencia de actividades distribuidas por semanas, orientadas al logro del producto final.\n\n");
+        sb.append("2.1 Producto de la unidad: ").append(details.finalProduct()).append("\n\n");
+
+        switch (details.type()) {
+            case "proyectoAprendizaje" -> {
+                sb.append("Tipo: Proyecto de Aprendizaje\n");
+                if (details instanceof LearningProjectDetailsResource project) {
+                    sb.append("Problema o reto central: ").append(project.centralProblem()).append("\n");
+                }
+            }
+            case "moduloAprendizaje" -> {
+                sb.append("Tipo: Módulo de Aprendizaje\n");
+                if (details instanceof LearningModuleDetailsResource module) {
+                    sb.append("Unidad base: ").append(module.baseUnit()).append("\n");
+                    sb.append("Justificación pedagógica: ").append(module.pedagogicalJustification()).append("\n");
+                }
+            }
+            case "unidadAprendizaje" -> {
+                sb.append("Tipo: Unidad de Aprendizaje\n");
+            }
+            default -> sb.append("Tipo: No especificado\n");
+        }
+
+        sb.append("2.2 Actividades semanales: Diseña una secuencia de actividades, deben ser breves, orientadas al logro del producto final, todo en base a la duración de la unidad (startDate y endDate).\n\n");
 
         // Sección 3
         sb.append("3. MATRIZ DE PROPÓSITO DE APRENDIZAJE\n");
@@ -105,4 +147,5 @@ public class DidacticUnitsController {
 
         return sb.toString();
     }
+
 }

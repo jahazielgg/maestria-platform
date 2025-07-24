@@ -47,7 +47,7 @@ public class DidacticUnitsController {
     private String buildPrompt(DidacticUnitResource request) {
         StringBuilder sb = new StringBuilder();
 
-        sb.append("Eres un experto en diseño curricular del Perú. Genera una UNIDAD DE APRENDIZAJE completa a partir de la siguiente información. Por favor, no empieces dando una introducción como 'A continuación' u otros, de frente brinda el informe. Haz TODO en formato MARKDOWN\n\n");
+        sb.append("Eres un experto en diseño curricular del Perú. Genera una UNIDAD DE APRENDIZAJE completa a partir de la siguiente información. Por favor, no empieces dando una introducción como 'A continuación' u otros, de frente brinda el informe. Haz TODO en formato MARKDOWN, SOLO MARKDOWN. Por favor, respeta la ENUMERACIÓN que se te brinda (e.g. Coloca '1. SITUACIÓN SIGNIFICATIVA', 2. PROPÓSITOS DE APRENDIZAJE, etc.), esos subtítulos van en NEGRITA, coloca saltos de línea despues de cada subtítulo.\n\n");
 
         // Información general
         var details = request.didacticUnitDetails();
@@ -59,7 +59,7 @@ public class DidacticUnitsController {
         sb.append("Fecha de fin: ").append(details.endDate()).append("\n\n");
 
         // Sección 1
-        sb.append("1. PLANTEAMIENTO DE LA SITUACIÓN SIGNIFICATIVA\n");
+        sb.append("1. SITUACIÓN SIGNIFICATIVA\n\n");
         sb.append("Situación significativa proporcionada: ")
                 .append(request.significantSituation() != null ? request.significantSituation() : "No se proporcionó una situación. Por favor, propón una.")
                 .append("\n");
@@ -67,8 +67,10 @@ public class DidacticUnitsController {
         sb.append("Por favor, amplía el planteamiento si es necesario, agregando contexto, problemática y preguntas abiertas retadoras que motiven el aprendizaje (por ejemplo: ¿Cómo podríamos...? ¿Qué podemos hacer si...?).\n\n");
 
         // Sección 2
-        sb.append("2. PROPÓSITOS DE APRENDIZAJE\n");
-        sb.append("2.1 Producto de la unidad: ").append(details.finalProduct()).append("\n\n");
+        sb.append("2. PROPÓSITOS DE APRENDIZAJE\n\n");
+        sb.append("Producto de la unidad: ").append(details.finalProduct()).append("\n\n");
+        sb.append("Si el producto de la unidad no ha sido especificado, por favor, propón uno relevante para la situación significativa.\n\n");
+
 
         switch (details.type()) {
             case "proyectoAprendizaje" -> {
@@ -90,8 +92,6 @@ public class DidacticUnitsController {
             default -> sb.append("Tipo: No especificado\n");
         }
 
-        sb.append("2.2 Actividades semanales: Diseña una secuencia de actividades, deben ser breves, orientadas al logro del producto final, todo en base a la duración de la unidad (startDate y endDate).\n\n");
-
         // Sección 3
         sb.append("3. MATRIZ DE PROPÓSITO DE APRENDIZAJE\n");
         sb.append("Para cada área curricular seleccionada, detalla lo siguiente en una tabla:\n");
@@ -104,13 +104,11 @@ public class DidacticUnitsController {
         sb.append("- Instrumentos de evaluación\n");
         sb.append("- Actividad principal asociada\n\n");
 
-        if (request.selectedCurricularAreas() != null && request.selectedCompetencies() != null) {
-            for (String area : request.selectedCurricularAreas()) {
+        if (request.selectedCompetencies() != null) {
                 for (SelectedCompetencyResource sc : request.selectedCompetencies()) {
-                    sb.append("Área: ").append(area).append("\n");
+                    sb.append("Área: ").append(sc.area()).append("\n");
                     sb.append("Competencia: ").append(sc.name()).append("\n");
                     sb.append("Capacidades: ").append(String.join(", ", sc.selectedAbilities())).append("\n\n");
-                }
             }
         }
 

@@ -8,7 +8,8 @@ import java.util.Map;
 @JsonTypeInfo(
         use = JsonTypeInfo.Id.NAME,
         include = JsonTypeInfo.As.PROPERTY,
-        property = "type"
+        property = "type",
+        visible = true
 )
 @JsonSubTypes({
         @JsonSubTypes.Type(value = LearningUnitDetailsResource.class, name = "unidadAprendizaje"),

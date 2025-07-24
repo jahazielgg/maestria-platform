@@ -4,6 +4,7 @@ import java.util.List;
 
 public record SelectedCompetencyResource(
         String name,
+        String area,
         List<String> selectedAbilities
 ) {
 }
